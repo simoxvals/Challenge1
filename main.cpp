@@ -7,11 +7,13 @@ int Estadoboton2 = 0;
 int numLecturas = 500;
 int* lecturas = nullptr;
 bool adquiriendoDatos = false;
-bool amplitudDetectada = false;
-int minimo = 100;
-
-int* pFrecuencia = nullptr;
-int* pAmplitud = nullptr;
+int tiempo_minimo = 100;
+float maximo=0;
+float* pFrecuencia = nullptr;
+float* pAmplitud = nullptr;
+float start = 0;
+float end  = 0;
+float N = 0;
 
 void liberarMemoria() {
     delete pFrecuencia;
@@ -22,13 +24,13 @@ void liberarMemoria() {
     lecturas = nullptr;
 }
 
+
 void asignarMemoria() {
-    pFrecuencia = new int;
-    pAmplitud = new int;
+    pFrecuencia = new float;
+    pAmplitud = new float;
     lecturas = new int[numLecturas];
     *pFrecuencia = 0;
     *pAmplitud = 0;
-    amplitudDetectada = false;
 }
 
 void setup() {
@@ -42,56 +44,48 @@ void setup() {
 void loop() {
     Estadoboton1 = digitalRead(2);
     Estadoboton2 = digitalRead(3);
-
+    
     if (Estadoboton1 == HIGH && !adquiriendoDatos) {
         adquiriendoDatos = true;
         Serial.println("Iniciando adquisicion de datos...");
+        start = millis();
     }
-
+    
     if (adquiriendoDatos) {
-        bool senalValida = false;
-
+        
         for (int i = 0; i < numLecturas; i++) {
             lecturas[i] = analogRead(pinGenerador);
-
-            if (lecturas[i] >= minimo) {
-                senalValida = true;
+            Serial.println(lecturas[i]);
+            delay(10);
+            
+            
+            if (lecturas[i]>=maximo) {
+                maximo=lecturas[i];
+                if(lecturas[i]== maximo){
+                    N++;
+                }
             }
-
-            if (senalValida && !amplitudDetectada && i > 0 && lecturas[i] < lecturas[i - 1]) {
-                *pAmplitud = lecturas[i - 1];
-                amplitudDetectada = true;
-                Serial.println("Amplitud detectada en Volts:");
-                Serial.println(*pAmplitud/100);
-
-
-            }
-
+            
             if (digitalRead(3) == HIGH) {
                 Serial.println("Adquisicion de datos detenida por boton 2.");
                 adquiriendoDatos = false;
+                *pAmplitud = (maximo/100.0);
+                end = millis() - start;
+                *pFrecuencia = (N / (end/1000));
                 break;
             }
-
-            delay(0);
+            
         }
-
         if (!adquiriendoDatos) {
-            if (amplitudDetectada) {
-                lcd_1.clear();
-                lcd_1.setCursor(0, 0);
-                lcd_1.print("Amplitud:");
-                lcd_1.setCursor(0, 1);
-                lcd_1.print((*pAmplitud)/100);
-                lcd_1.print("V");
-            } else {
-                lcd_1.clear();
-                lcd_1.setCursor(0, 0);
-                lcd_1.print("Amplitud no");
-                lcd_1.setCursor(0, 1);
-                lcd_1.print("detectada");
-            }
-
+            lcd_1.clear();
+            lcd_1.setCursor(0, 0);
+            lcd_1.print("Amp:");
+            lcd_1.print((*pAmplitud));
+            lcd_1.print("V");
+            lcd_1.setCursor(0, 1);
+            lcd_1.print("Fr: ");
+            lcd_1.print((*pFrecuencia ));
+            lcd_1.print("Hz");
             liberarMemoria();
             asignarMemoria();
         }
