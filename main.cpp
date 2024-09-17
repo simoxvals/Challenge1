@@ -5,21 +5,29 @@ Adafruit_LiquidCrystal lcd_1(0);
 int pinGenerador = 0;
 int Estadoboton1 = 0;
 int Estadoboton2 = 0;
-int numLecturas = 500;
-int* lecturas = nullptr;
-bool adquiriendoDatos = false;
+int numLecturas = 100;
+int pendiente = 0;
+int C = 0;
+
 float maximo = 0;
-float* pFrecuencia = nullptr;
-float* pAmplitud = nullptr;
 float start = 0;
 float end = 0;
 float N = 0;
+
+int *pPendiente = 0;
+int* lecturas = nullptr;
+float* pFrecuencia = nullptr;
+float* pAmplitud = nullptr;
+
 bool sCuadrada = false;
 bool sTriangular = false;
 bool cambioBrusco = false;
 bool esAnaloga = false;
+bool adquiriendoDatos = false;
 
-void liberarMemoria() {
+
+void liberarMemoria() 
+{
     delete pFrecuencia;
     delete pAmplitud;
     delete[] lecturas;
@@ -28,7 +36,9 @@ void liberarMemoria() {
     lecturas = nullptr;
 }
 
-void asignarMemoria() {
+
+void asignarMemoria() 
+{
     pFrecuencia = new float;
     pAmplitud = new float;
     lecturas = new int[numLecturas];
@@ -49,78 +59,101 @@ void loop() {
     Estadoboton2 = digitalRead(3);
 
     if (Estadoboton1 == HIGH && !adquiriendoDatos) {
-        N = 0; 
-        maximo = 0;
+
         adquiriendoDatos = true;
         sCuadrada = false;
         sTriangular = false;
         cambioBrusco = false;
         esAnaloga = false;
-        Serial.println("Iniciando adquisicion de datos...");
+      
+        N = 0; 
+        maximo = 0;
         start = millis();
+        
+        Serial.println("Iniciando adquisicion...");
+        lcd_1.setCursor(0, 0);
+        lcd_1.print("Adquiriendo...");
+
     }
 
     if (adquiriendoDatos) {
-        for (int i = 0; i < numLecturas; i+=20) {
+        for (int i = 0; i < numLecturas; i++) 
+        {
             lecturas[i] = analogRead(pinGenerador);
             Serial.println(lecturas[i]);
-            delay(10);
-
-            if (lecturas[i] >= maximo) {
+ 
+            if (lecturas[i] >= maximo) 
+            {
                 maximo = lecturas[i];
-            }
+              	pPendiente = &lecturas[i];
+              
+                /////////////////////////////////
+              
+              	if(i > 0 && lecturas[i] < maximo)
+                {
+                  pendiente = maximo - lecturas[i];
+                  
+                  
+                  if( pendiente > 20 )
+                  {
+                      C++;
+                  }
+                }
+             }
 
-            if (i >= 50 && abs(lecturas[i] - lecturas[i-20]) > 100) {
+            if (i >= 3 && abs(lecturas[i] - lecturas[i-1]) > 100) {
                 cambioBrusco = true;
             }
 
             if (cambioBrusco) {
                 
-                if (i >= 40 && lecturas[i] == lecturas[i-20] && lecturas[i-20] == lecturas[i-40]) {
+                if (i >= 2 && lecturas[i] == lecturas[i-1] && lecturas[i-1] == lecturas[i-2]) {
                     sCuadrada = true;
-                    maximo = lecturas[i];
-                }
-
-                if (i >= 40) {
-                    bool creciente = true;
-                    bool decreciente = true;
-                    for (int j = i-20; j >= i-40; j -= 20) {
-                        if (lecturas[j] < lecturas[j+20]) {
-                            decreciente = false;
-                        }
-                        if (lecturas[j] > lecturas[j+20]) {
-                            creciente = false;
-                        }
-                    }
-                    if (creciente && decreciente) {
-                        sTriangular = true;
-                    }
+                    
                 }
             }
 
-            if (i >= 5 && lecturas[i] > 0 && lecturas[i-20] < 0) {
+            if (i >= 5 && lecturas[i] > 0 && lecturas[i-1] < 0) {
                 N++;
             }
 
-            if (digitalRead(3) == HIGH) {
-                Serial.println("Adquisicion de datos detenida por boton 2.");
-                adquiriendoDatos = false;
-                *pAmplitud = abs(maximo / 100.0);
-                end = millis() - start;
-                *pFrecuencia = (N / (end / 1000.0));
+            if (digitalRead(3) == HIGH) 
+            {
+              	adquiriendoDatos = false;
+                lcd_1.clear();
+                Serial.println("Adquisicion detenida.");
                 
+                *pAmplitud = abs(maximo / 100.0);
+              	end = millis() - start;
+                *pFrecuencia = (N / (end / 1000.0));
+              
                 int parteEntera = (int)(*pFrecuencia);
                 float parteDecimal = (*pFrecuencia) - parteEntera;
-                if (parteDecimal > 0.35) {
+              
+                if (parteDecimal > 0.40) 
+                {
                     *pFrecuencia = parteEntera + 1;
-                } else {
+                }
+                else 
+                {
                     *pFrecuencia = parteEntera + parteDecimal;
                 }
 
-                if (!cambioBrusco) {
-                    esAnaloga = true; 
+                ///////////////////////////
+              
+                if(C >= 1) 
+                  
+                {
+					sTriangular = true;
+						
                 }
- 
+                else
+                {
+					esAnaloga = true;
+                }
+                
+				///////////////////////////
+                
                 lcd_1.clear();
                 lcd_1.setCursor(0, 0);
                 if (sCuadrada) {
@@ -132,6 +165,7 @@ void loop() {
                 } else {
                     lcd_1.print("Senal Desconocida:");
                 }
+              
                 lcd_1.setCursor(0, 1);
                 lcd_1.print("Amplitud: ");
                 lcd_1.print(*pAmplitud);
@@ -140,13 +174,14 @@ void loop() {
                 lcd_1.print("Frecuencia: ");
                 lcd_1.print(*pFrecuencia);
                 lcd_1.print("Hz");
-
+				
+                //////////////////////////
+              
                 liberarMemoria();
                 asignarMemoria();
                 break;
             }
         }
     }
-}
-
+} 
 
