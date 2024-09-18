@@ -14,10 +14,10 @@ float start = 0;
 float end = 0;
 float N = 0;
 
-int *pPendiente = 0;
 int* lecturas = nullptr;
 float* pFrecuencia = nullptr;
 float* pAmplitud = nullptr;
+int* pPendiente= nullptr;
 
 bool sCuadrada = false;
 bool sTriangular = false;
@@ -31,6 +31,7 @@ void liberarMemoria()
     delete pFrecuencia;
     delete pAmplitud;
     delete[] lecturas;
+  	delete [] pPendiente;
     pFrecuencia = nullptr;
     pAmplitud = nullptr;
     lecturas = nullptr;
@@ -42,6 +43,7 @@ void asignarMemoria()
     pFrecuencia = new float;
     pAmplitud = new float;
     lecturas = new int[numLecturas];
+  	pPendiente = new int[10];
     *pFrecuencia = 0;
     *pAmplitud = 0;
 }
@@ -86,8 +88,7 @@ void loop() {
             {
                 maximo = lecturas[i];
               	pPendiente = &lecturas[i];
-              
-                /////////////////////////////////
+              	
               
               	if(i > 0 && lecturas[i] < maximo)
                 {
@@ -101,19 +102,19 @@ void loop() {
                 }
              }
 
-            if (i >= 3 && abs(lecturas[i] - lecturas[i-1]) > 100) {
+            if (i >= 10 && abs(lecturas[i] - lecturas[i-1]) > 100) {
                 cambioBrusco = true;
             }
 
             if (cambioBrusco) {
                 
-                if (i >= 2 && lecturas[i] == lecturas[i-1] && lecturas[i-1] == lecturas[i-2]) {
+                if (i >= 10 && lecturas[i] == lecturas[i-1] && lecturas[i-1] == lecturas[i-2]) {
                     sCuadrada = true;
                     
                 }
             }
 
-            if (i >= 5 && lecturas[i] > 0 && lecturas[i-1] < 0) {
+            if (i >= 10 && lecturas[i] > 0 && lecturas[i-1] < 0) {
                 N++;
             }
 
@@ -130,7 +131,7 @@ void loop() {
                 int parteEntera = (int)(*pFrecuencia);
                 float parteDecimal = (*pFrecuencia) - parteEntera;
               
-                if (parteDecimal > 0.40) 
+                if (parteDecimal > 0.35) 
                 {
                     *pFrecuencia = parteEntera + 1;
                 }
@@ -139,7 +140,6 @@ void loop() {
                     *pFrecuencia = parteEntera + parteDecimal;
                 }
 
-                ///////////////////////////
               
                 if(C >= 1) 
                   
@@ -152,7 +152,6 @@ void loop() {
 					esAnaloga = true;
                 }
                 
-				///////////////////////////
                 
                 lcd_1.clear();
                 lcd_1.setCursor(0, 0);
@@ -167,21 +166,21 @@ void loop() {
                 }
               
                 lcd_1.setCursor(0, 1);
-                lcd_1.print("Amplitud: ");
+                lcd_1.print("Amp: ");
                 lcd_1.print(*pAmplitud);
                 lcd_1.print("V");
                 lcd_1.setCursor(0, 1);
-                lcd_1.print("Frecuencia: ");
+                lcd_1.print("Frec: ");
                 lcd_1.print(*pFrecuencia);
                 lcd_1.print("Hz");
 				
-                //////////////////////////
               
                 liberarMemoria();
                 asignarMemoria();
                 break;
+                delay(10);
+
             }
         }
     }
 } 
-
